@@ -15,9 +15,13 @@ import container.ContainerSettings;
 import container.TokenAdvancedContainer;
 import dbot.BotCommandTrigger;
 import dbot.ModuleEmptyImpl;
+import java.util.List;
 import music.addon.MusicPlayerAdmin;
 import music.addon.MusicPlayerUser;
 import net.dv8tion.jda.core.JDA;
+import net.dv8tion.jda.core.entities.ChannelType;
+import net.dv8tion.jda.core.entities.Message;
+import net.dv8tion.jda.core.events.Event;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 import token.TokenConverter;
 
@@ -34,14 +38,14 @@ public class Music extends ModuleEmptyImpl<AudioAddon> {
     }
     
     public Music(ContainerSettings containerSettings, TokenConverter tokenConverter, BotCommandTrigger commandTrigger) {
-        super(containerSettings, tokenConverter, commandTrigger, new MusicPlayerUser(), new MusicPlayerAdmin());
+        super(containerSettings, tokenConverter, commandTrigger, new MusicPlayerAdmin(), new MusicPlayerUser());
         this.playerManager = new DefaultAudioPlayerManager();
-        AudioSourceManagers.registerRemoteSources(playerManager);
+        AudioSourceManagers.registerLocalSource(playerManager);
     }
 
     @Override
     public String getFullName() {
-        return "Audio Test";
+        return "Music Bot";
     }
 
     @Override
@@ -53,15 +57,22 @@ public class Music extends ModuleEmptyImpl<AudioAddon> {
     public long getUid() {
         return -419738612l;
     }
-
+    
     @Override
     public boolean onMessage(MessageReceivedEvent e, TokenAdvancedContainer container) {
+        /*
         if (e.getChannel().getName().equals("music") && !e.getAuthor().isBot()) {
-            e.getMessage().delete().queue();
-        }
+            List<Message.Attachment> attachments = e.getMessage().getAttachments();
+            if (attachments.isEmpty()) {
+                e.getMessage().delete().queue();
+            }
+        }*/
         for (AudioAddon addon : getAddons()) {
             if (addon.hasPermissions(e)) {
                 if (onMessageForEachAddon(addon, e, container)) {
+                    if (e.getChannelType() == ChannelType.TEXT) {
+                        e.getMessage().delete().queue();
+                    }
                     return true;
                 }
                 container.reset();
@@ -80,7 +91,7 @@ public class Music extends ModuleEmptyImpl<AudioAddon> {
         return new BotCommandTrigger() {
             @Override
             public boolean isMessageTrigger(JDA client, MessageReceivedEvent e) {
-                return e.getChannel().getName().equals("music");
+                return !e.getAuthor().isBot() && (e.getChannel().getName().equals("music") || e.getChannelType() == ChannelType.PRIVATE);
             }
 
             @Override

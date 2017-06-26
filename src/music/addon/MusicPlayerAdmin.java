@@ -10,6 +10,7 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import container.TokenAdvancedContainer;
 import container.detector.TokenDetectorContainer;
 import container.detector.TokenStringDetector;
+import modules.help.Help;
 import music.GuildPlayer;
 import music.GuildPlayerFactory;
 import music.Music;
@@ -29,6 +30,24 @@ public class MusicPlayerAdmin extends AddonEmptyImpl implements Music.AudioAddon
     @Override
     public String getName() {
         return "Music Player Admin Commands";
+    }
+
+    @Override
+    public String getFullHelp() {
+        return getShortHelp();
+    }
+
+    @Override
+    public String getShortHelp() {
+        return "**!join** - *Forces the music bot to join your current voice channel*\n" +
+               "**!leave** - *Forces the music bot to leave the guild's voice channel*\n" +
+               "**!play** <File|URL> - *Plays the chosen track or resumes playing*\n" +
+               "**!stop** - *Stops the music bot*\n" +
+               "**!skip** - *Skips the current track*\n" +
+               "**!clear** - *Clears the playlist*\n" +
+               "**!pause** - *Pauses the music bot*\n" +
+               "**!unpause** - *Unauses the music bot*\n" +
+               "*Note: These commands only work in the #Music channel of a guild.*";
     }
 
     @Override
@@ -60,67 +79,68 @@ public class MusicPlayerAdmin extends AddonEmptyImpl implements Music.AudioAddon
     @Override
     public boolean onMessage(MessageReceivedEvent e, TokenAdvancedContainer container, AudioPlayerManager playerManager) {
         
-        GuildPlayer player = GuildPlayerFactory.getGuildPlayer(playerManager, e.getGuild());
-        
-        if (container.getAsString().equalsIgnoreCase("join")) {
+        if (e.getChannelType() == ChannelType.TEXT) {
             
-            VoiceChannel voiceChannel = e.getGuild().getAudioManager().getConnectedChannel();
-            
-            if (voiceChannel == null) {
-                VoiceChannel userVoiceChannel = e.getMember().getVoiceState().getChannel();
-                if (userVoiceChannel == null) {
-                    return false;
+            GuildPlayer player = GuildPlayerFactory.getGuildPlayer(playerManager, e.getGuild());
+
+            if (container.getAsString().equalsIgnoreCase("join")) {
+
+                VoiceChannel voiceChannel = e.getGuild().getAudioManager().getConnectedChannel();
+
+                if (voiceChannel == null) {
+                    VoiceChannel userVoiceChannel = e.getMember().getVoiceState().getChannel();
+                    if (userVoiceChannel == null) {
+                        return true;
+                    }
+                    e.getGuild().getAudioManager().openAudioConnection(userVoiceChannel);
+                    player.sendNewInfoMessage();
                 }
-                e.getGuild().getAudioManager().openAudioConnection(userVoiceChannel);
-                player.sendNewInfoMessage();
-                return true;
-            }
-            
-        } else if (container.getAsString().equalsIgnoreCase("play")) {
-            
-            if (!container.hasNext()) {
-                if (player.getAudioPlayer().isPaused()) {
-                    player.unpause();
-                } else if (player.getAudioPlayer().getPlayingTrack() == null) {
-                    player.next();
+
+            } else if (container.getAsString().equalsIgnoreCase("play")) {
+
+                if (!container.hasNext()) {
+                    if (player.getAudioPlayer().isPaused()) {
+                        player.unpause();
+                    } else if (player.getAudioPlayer().getPlayingTrack() == null) {
+                        player.next();
+                    }
+                    return true;
                 }
-                return true;
-            }
-            container.next();
-            String link = container.getAsString();
-            
-            AudioManager audioManager = player.getAudioManager();
-            if (audioManager == null || !audioManager.isConnected()) {
+                container.next();
+                String link = container.getAsString();
+                /*
+                AudioManager audioManager = player.getAudioManager();
+                if (audioManager == null || !audioManager.isConnected()) {
+                    return true;
+                }*/
+                player.enplay(link);
+
+
+            } else if (container.getAsString().equalsIgnoreCase("skip") || container.getAsString().equalsIgnoreCase("next")) {
+                player.next();
+            } else if (container.getAsString().equalsIgnoreCase("stop")) {
+                player.stop();
+            } else if (container.getAsString().equalsIgnoreCase("clear")) {
+                player.clear();
+            } else if (container.getAsString().equalsIgnoreCase("pause")) {
+                player.pause();
+            } else if (container.getAsString().equalsIgnoreCase("unpause")) {
+                player.unpause();
+            } else if (container.getAsString().equalsIgnoreCase("leave")) {
+                AudioManager audioManager = player.getAudioManager();
+                if (audioManager.isConnected()) {
+                    audioManager.closeAudioConnection();
+                    player.removeInfoMessage();
+                }
+            } else if (container.getAsString().equalsIgnoreCase("help")) {
+                Help.showHelp(e, this);
+                return false;
+            } else {
                 return false;
             }
-            player.enplay(link);
-            
-            return true;
-            
-        } else if (container.getAsString().equalsIgnoreCase("skip") || container.getAsString().equalsIgnoreCase("next")) {
-            player.next();
-            return true;
-        } else if (container.getAsString().equalsIgnoreCase("stop")) {
-            player.stop();
-            return true;
-        } else if (container.getAsString().equalsIgnoreCase("clear")) {
-            player.clear();
-            return true;
-        } else if (container.getAsString().equalsIgnoreCase("pause")) {
-            player.pause();
-            return true;
-        } else if (container.getAsString().equalsIgnoreCase("unpause")) {
-            player.unpause();
-            return true;
-        } else if (container.getAsString().equalsIgnoreCase("leave")) {
-            AudioManager audioManager = player.getAudioManager();
-            if (!audioManager.isConnected()) {
-                return false;
-            }
-            audioManager.closeAudioConnection();
-            player.removeInfoMessage();
-            return true;
+        } else {
+            return false;
         }
-        return false;
+        return true;
     }
 }

@@ -33,7 +33,17 @@ public abstract class PlayingNowGenerator {
         
         EmbedBuilder eb = new EmbedBuilder();
         AudioTrackInfo info = track.getInfo();
-        eb.setAuthor(info.title, info.uri, null);
+        
+        String title = info.title;
+        if (title.equals("Unknown title")) {
+            title = retreiveFileMain(info.identifier);
+        }
+        
+        try {
+            eb.setAuthor(title, info.uri, null);
+        } catch (IllegalArgumentException ex) {
+            eb.setAuthor(title, null, null);
+        }
         
         eb.setDescription(retrieveTime(track.getPosition()) + " | " + retrieveTime(track.getDuration()));
         //eb.setDescription(info.author);
@@ -45,11 +55,18 @@ public abstract class PlayingNowGenerator {
     }
     
     public static String generatePlayQueue(BlockingQueue<AudioTrack> queue) {
-        String finalString = "```java\nPlaylist\n\n";
+        String finalString = "```java\nMain Playlist (" + queue.size() + ")\n\n";
         int i = 1;
         for (AudioTrack track : queue) {
             AudioTrackInfo info = track.getInfo();
-            finalString += "(" + i + ")- " + info.title + " (" + retrieveTime(info.length) + ")\n";
+            
+            String title = info.title;
+            
+            if (title.equals("Unknown title")) {
+                title = retreiveFileMain(info.identifier);
+            }
+            
+            finalString += "(" + i + ")- " + title + " [" + retrieveTime(info.length) + "]\n";
             i++;
         }
         
@@ -72,6 +89,25 @@ public abstract class PlayingNowGenerator {
         return hoursString + minutesString + ":" + secondsString;
     }
     
+    public static String retreiveFileMain(String path) {
+        if (path.startsWith("music")) {
+            path = path.substring(6);
+        } else if (path.startsWith("upload")) {
+            path = path.substring(7);
+        }
+        if (path.contains(".")) {
+            path = path.substring(0, path.lastIndexOf('.'));
+        }
+        return path;
+    }
+    
+    public static String retreiveFileExt(String path) {
+        if (path.contains(".")) {
+            path = path.substring(path.lastIndexOf('.') + 1);
+        }
+        return path;
+    }
+    
     public static String retreiveUrlMain(String url) {
         if (url.startsWith("http") || url.startsWith("www")) {
             try {
@@ -85,6 +121,8 @@ public abstract class PlayingNowGenerator {
             } catch (Exception ex) {
                 return url;
             }
+        } else if (url.contains(".")) {
+            return retreiveFileExt(url);
         } else {
             return url;
         }

@@ -276,12 +276,12 @@ public class GuildPlayer extends AudioEventAdapter implements AudioSendHandler {
         if (playingMessage != null) {
             //playingMessage.editMessage(PlayingNowGenerator.generatePlayingNow(track)).queue();
         } else {
-            playingMessage = infoChannel.sendMessage(PlayingNowGenerator.generatePlayingNow(track)).complete();
+            //playingMessage = infoChannel.sendMessage(PlayingNowGenerator.generatePlayingNow(track)).complete();
         }
         if (playlistMessage != null) {
             playlistMessage.editMessage(PlayingNowGenerator.generatePlayQueue(queue)).queue();
         } else {
-            playlistMessage = infoChannel.sendMessage(PlayingNowGenerator.generatePlayQueue(queue)).complete();
+            //playlistMessage = infoChannel.sendMessage(PlayingNowGenerator.generatePlayQueue(queue)).complete();
         }
     }
     
