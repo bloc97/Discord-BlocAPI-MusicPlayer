@@ -28,7 +28,6 @@ public abstract class PlayingNowGenerator {
     public static MessageEmbed generatePlayingNow(AudioTrack track) {
         
         if (track == null) {
-            System.out.println("EmptyCalled2");
             return generateEmptyPlayingNow();
         }
         
