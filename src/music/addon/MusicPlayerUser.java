@@ -83,7 +83,13 @@ public class MusicPlayerUser extends AddonEmptyImpl implements Music.AudioAddon 
             return true;
             
         } else if (container.getAsString().equalsIgnoreCase("voteskip") || container.getAsString().equalsIgnoreCase("votenext")) {
-            player.next();
+            
+            AudioManager audioManager = e.getGuild().getAudioManager();
+            if (audioManager == null || !audioManager.isConnected()) {
+                return false;
+            }
+            
+            player.voteNext(e.getAuthor(), audioManager.getConnectedChannel().getMembers().size());
             return true;
         }
         return false;

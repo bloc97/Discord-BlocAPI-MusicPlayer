@@ -14,6 +14,8 @@ import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
 import com.sedmelluq.discord.lavaplayer.track.playback.AudioFrame;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.BlockingQueue;
@@ -23,6 +25,7 @@ import net.dv8tion.jda.core.audio.AudioSendHandler;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
+import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.managers.AudioManager;
 
 /**
@@ -43,6 +46,8 @@ public class GuildPlayer extends AudioEventAdapter implements AudioSendHandler {
     private final BlockingQueue<AudioTrack> queue;
     
     private final Timer playingTimer;
+    
+    private Set<User> votedNext = new HashSet<>();
     
     public GuildPlayer(AudioPlayerManager playerManager, Guild guild) {
         this.audioPlayer = playerManager.createPlayer();
@@ -158,6 +163,20 @@ public class GuildPlayer extends AudioEventAdapter implements AudioSendHandler {
         return audioPlayer.startTrack(queue.poll(), false);
     }
     
+    public void voteNext(User user, int totalUsers) {
+        if (totalUsers - 1 == 1) {
+            next();
+            votedNext = new HashSet<>();
+            return;
+        }
+        
+        votedNext.add(user);
+        if (votedNext.size() > ((int)Math.ceil((totalUsers - 1) / 2d))) {
+            next();
+            votedNext = new HashSet<>();
+        }
+    }
+    
     public void enplay(String identifier) {
         playerManager.loadItem(identifier, new AudioLoadResultHandler() {
             @Override
@@ -247,7 +266,7 @@ public class GuildPlayer extends AudioEventAdapter implements AudioSendHandler {
                 playingMessage.editMessage(PlayingNowGenerator.generateEmptyPlayingNow()).queue();
                 playlistMessage.editMessage(PlayingNowGenerator.generatePlayQueue(queue)).queue();
             }
-        } else {
+        } else if (endReason != AudioTrackEndReason.REPLACED) {
             playingMessage.editMessage(PlayingNowGenerator.generateEmptyPlayingNow()).queue();
         }
     }
@@ -255,7 +274,7 @@ public class GuildPlayer extends AudioEventAdapter implements AudioSendHandler {
     @Override
     public void onTrackStart(AudioPlayer player, AudioTrack track) {
         if (playingMessage != null) {
-            playingMessage.editMessage(PlayingNowGenerator.generatePlayingNow(track)).queue();
+            //playingMessage.editMessage(PlayingNowGenerator.generatePlayingNow(track)).queue();
         } else {
             playingMessage = infoChannel.sendMessage(PlayingNowGenerator.generatePlayingNow(track)).complete();
         }
