@@ -10,10 +10,12 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import container.TokenAdvancedContainer;
 import container.detector.TokenDetectorContainer;
 import container.detector.TokenStringDetector;
+import java.io.File;
 import modules.help.Help;
 import music.GuildPlayer;
 import music.GuildPlayerFactory;
 import music.Music;
+import net.bloc97.helpers.Levenshtein;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.ChannelType;
 import net.dv8tion.jda.core.entities.Role;
@@ -73,6 +75,10 @@ public class MusicPlayerAdmin extends AddonEmptyImpl implements Music.AudioAddon
             }
         }
         
+        if (e.getMember().isOwner()) {
+            return true;
+        }
+        
         return false;
     }
 
@@ -107,13 +113,8 @@ public class MusicPlayerAdmin extends AddonEmptyImpl implements Music.AudioAddon
                     return true;
                 }
                 container.next();
-                String link = container.getAsString();
-                /*
-                AudioManager audioManager = player.getAudioManager();
-                if (audioManager == null || !audioManager.isConnected()) {
-                    return true;
-                }*/
-                player.enplay(link);
+                String partialName = container.getRemainingContentAsString();
+                parseTrackInput(partialName, player, e);
 
 
             } else if (container.getAsString().equalsIgnoreCase("skip") || container.getAsString().equalsIgnoreCase("next")) {
@@ -142,5 +143,39 @@ public class MusicPlayerAdmin extends AddonEmptyImpl implements Music.AudioAddon
             return false;
         }
         return true;
+    }
+    
+    public static void parseTrackInput(String partialName, GuildPlayer player, MessageReceivedEvent e) {
+        
+        if (partialName.startsWith("http") || partialName.startsWith("www")) {
+            player.enplay(partialName, e);
+        } else {
+            File folder = new File("music");
+            File[] fileList = folder.listFiles();
+            File folderUpload = new File("upload");
+            File[] fileUploadList = folderUpload.listFiles();
+
+            File closestFile = null;
+            int searchScore = Integer.MAX_VALUE;
+
+            for (File file : fileList) {
+                int thisScore = Levenshtein.subwordDistance(file.getName().toLowerCase(), partialName.toLowerCase());
+                if (thisScore < searchScore) {
+                    searchScore = thisScore;
+                    closestFile = file;
+                }
+            }
+            for (File file : fileUploadList) {
+                int thisScore = Levenshtein.subwordDistance(file.getName().toLowerCase(), partialName.toLowerCase());
+                if (thisScore < searchScore) {
+                    searchScore = thisScore;
+                    closestFile = file;
+                }
+            }
+
+            if (closestFile != null) {
+                player.enplay(closestFile.getPath(), e);
+            }
+        }
     }
 }

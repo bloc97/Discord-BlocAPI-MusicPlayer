@@ -10,18 +10,18 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers;
 import music.Music.AudioAddon;
-import music.addon.MusicPlayer;
 import container.ContainerSettings;
 import container.TokenAdvancedContainer;
 import dbot.BotCommandTrigger;
 import dbot.ModuleEmptyImpl;
-import java.util.List;
+import java.util.concurrent.TimeUnit;
 import music.addon.MusicPlayerAdmin;
 import music.addon.MusicPlayerUser;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.entities.ChannelType;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.events.Event;
+import net.dv8tion.jda.core.entities.Game;
+import net.dv8tion.jda.core.entities.impl.GameImpl;
+import net.dv8tion.jda.core.events.ReadyEvent;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 import token.TokenConverter;
 
@@ -41,6 +41,7 @@ public class Music extends ModuleEmptyImpl<AudioAddon> {
         super(containerSettings, tokenConverter, commandTrigger, new MusicPlayerAdmin(), new MusicPlayerUser());
         this.playerManager = new DefaultAudioPlayerManager();
         AudioSourceManagers.registerLocalSource(playerManager);
+        AudioSourceManagers.registerRemoteSources(playerManager);
     }
 
     @Override
@@ -57,6 +58,13 @@ public class Music extends ModuleEmptyImpl<AudioAddon> {
     public long getUid() {
         return -419738612l;
     }
+
+    @Override
+    public boolean onReady(ReadyEvent e) {
+        e.getJDA().getPresence().setGame(new GameImpl("Alpha Test", "https://github.com/bloc97/Discord-BlocAPI-MusicPlayer", Game.GameType.DEFAULT));
+        //e.getJDA().getSelfUser().getManager().setName("♫ _ ♫").complete();
+        return true;
+    }
     
     @Override
     public boolean onMessage(MessageReceivedEvent e, TokenAdvancedContainer container) {
@@ -71,7 +79,7 @@ public class Music extends ModuleEmptyImpl<AudioAddon> {
             if (addon.hasPermissions(e)) {
                 if (onMessageForEachAddon(addon, e, container)) {
                     if (e.getChannelType() == ChannelType.TEXT) {
-                        e.getMessage().delete().queue();
+                        e.getMessage().delete().queueAfter(5, TimeUnit.DAYS);
                     }
                     return true;
                 }

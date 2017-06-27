@@ -26,6 +26,7 @@ import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.entities.User;
+import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.core.managers.AudioManager;
 
 /**
@@ -160,24 +161,24 @@ public class GuildPlayer extends AudioEventAdapter implements AudioSendHandler {
     }
     
     public boolean next() {
+        votedNext = new HashSet<>();
         return audioPlayer.startTrack(queue.poll(), false);
     }
     
     public void voteNext(User user, int totalUsers) {
         if (totalUsers - 1 == 1) {
             next();
-            votedNext = new HashSet<>();
             return;
         }
         
         votedNext.add(user);
-        if (votedNext.size() > ((int)Math.ceil((totalUsers - 1) / 2d))) {
+        //if (votedNext.size() >= ((int)Math.ceil((totalUsers - 1) / 2d))) {
+        if (votedNext.size()/(double)(totalUsers - 1) > 0.5d) {
             next();
-            votedNext = new HashSet<>();
         }
     }
     
-    public void enplay(String identifier) {
+    public void enplay(String identifier, MessageReceivedEvent e) {
         playerManager.loadItem(identifier, new AudioLoadResultHandler() {
             @Override
             public void trackLoaded(AudioTrack track) {
@@ -200,15 +201,17 @@ public class GuildPlayer extends AudioEventAdapter implements AudioSendHandler {
 
             @Override
             public void noMatches() {
+                e.getAuthor().openPrivateChannel().complete().sendMessage("Load Failed: No Match!").queue();
             }
 
             @Override
             public void loadFailed(FriendlyException exception) {
+                e.getAuthor().openPrivateChannel().complete().sendMessage((exception.getMessage() == null) ? "Load Failed" : "Load Failed: " + exception.getMessage()).queue();
             }
         });
     }
     
-    public void enqueue(String identifier) {
+    public void enqueue(String identifier, MessageReceivedEvent e) {
         playerManager.loadItem(identifier, new AudioLoadResultHandler() {
             @Override
             public void trackLoaded(AudioTrack track) {
@@ -226,10 +229,12 @@ public class GuildPlayer extends AudioEventAdapter implements AudioSendHandler {
 
             @Override
             public void noMatches() {
+                e.getAuthor().openPrivateChannel().complete().sendMessage("Load Failed: No Match!").queue();
             }
 
             @Override
             public void loadFailed(FriendlyException exception) {
+                e.getAuthor().openPrivateChannel().complete().sendMessage((exception.getMessage() == null) ? "Load Failed" : "Load Failed: " + exception.getMessage()).queue();
             }
         });
     }

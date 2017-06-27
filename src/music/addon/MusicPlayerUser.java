@@ -43,7 +43,8 @@ public class MusicPlayerUser extends AddonEmptyImpl implements Music.AudioAddon 
 
     @Override
     public String getFullHelp() {
-        return getShortHelp();
+        return "Discord Music Player by Bloc97\n\n" + 
+               getShortHelp();
     }
 
     @Override
@@ -135,9 +136,8 @@ public class MusicPlayerUser extends AddonEmptyImpl implements Music.AudioAddon 
                     return true;
                 }
                 container.next();
-                String link = container.getAsString();
-                
-                player.enqueue(link);
+                String partialName = container.getRemainingContentAsString();
+                parseTrackInput(partialName, player, e);
 
             } else if (container.getAsString().equalsIgnoreCase("voteskip") || container.getAsString().equalsIgnoreCase("votenext")) {
                 /*
@@ -153,43 +153,11 @@ public class MusicPlayerUser extends AddonEmptyImpl implements Music.AudioAddon 
                 if (!attachments.isEmpty()) {
                     Message.Attachment attachment = attachments.get(0);
                     attachment.download(new File("upload\\" + attachment.getFileName()));
-                    e.getMessage().delete().queue();
                     return true;
                 }
 
-                String partialName = container.getAsString();
-                if (partialName.startsWith("http") || partialName.startsWith("www")) {
-                    player.enqueue(partialName);
-                } else {
-                    File folder = new File("music");
-                    File[] fileList = folder.listFiles();
-                    File folderUpload = new File("upload");
-                    File[] fileUploadList = folderUpload.listFiles();
-
-                    File closestFile = null;
-                    int searchScore = Integer.MAX_VALUE;
-
-                    for (File file : fileList) {
-                        int thisScore = Levenshtein.subwordDistance(file.getName().toLowerCase(), partialName.toLowerCase());
-                        if (thisScore < searchScore) {
-                            searchScore = thisScore;
-                            closestFile = file;
-                        }
-                    }
-                    for (File file : fileUploadList) {
-                        int thisScore = Levenshtein.subwordDistance(file.getName().toLowerCase(), partialName.toLowerCase());
-                        if (thisScore < searchScore) {
-                            searchScore = thisScore;
-                            closestFile = file;
-                        }
-                    }
-
-                    if (closestFile != null) {
-                        player.enqueue(closestFile.getPath());
-                        System.out.println(closestFile.getPath());
-                    }
-
-                }
+                String partialName = container.getRemainingContentAsString();
+                parseTrackInput(partialName, player, e);
             }
             
         } else if (e.getChannelType() == ChannelType.PRIVATE) {
@@ -204,5 +172,39 @@ public class MusicPlayerUser extends AddonEmptyImpl implements Music.AudioAddon 
         
         return true;
     }
+    
+    public static void parseTrackInput(String partialName, GuildPlayer player, MessageReceivedEvent e) {
+        
+        if (partialName.startsWith("http") || partialName.startsWith("www")) {
+            player.enqueue(partialName, e);
+        } else {
+            File folder = new File("music");
+            File[] fileList = folder.listFiles();
+            File folderUpload = new File("upload");
+            File[] fileUploadList = folderUpload.listFiles();
 
+            File closestFile = null;
+            int searchScore = Integer.MAX_VALUE;
+
+            for (File file : fileList) {
+                int thisScore = Levenshtein.subwordDistance(file.getName().toLowerCase(), partialName.toLowerCase());
+                if (thisScore < searchScore) {
+                    searchScore = thisScore;
+                    closestFile = file;
+                }
+            }
+            for (File file : fileUploadList) {
+                int thisScore = Levenshtein.subwordDistance(file.getName().toLowerCase(), partialName.toLowerCase());
+                if (thisScore < searchScore) {
+                    searchScore = thisScore;
+                    closestFile = file;
+                }
+            }
+
+            if (closestFile != null) {
+                player.enqueue(closestFile.getPath(), e);
+            }
+        }
+    }
+    
 }
