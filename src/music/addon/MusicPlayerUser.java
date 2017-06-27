@@ -22,7 +22,15 @@ import net.bloc97.helpers.Levenshtein;
 import net.dv8tion.jda.core.entities.ChannelType;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.VoiceChannel;
+import net.dv8tion.jda.core.events.guild.voice.GenericGuildVoiceEvent;
+import net.dv8tion.jda.core.events.guild.voice.GuildVoiceDeafenEvent;
+import net.dv8tion.jda.core.events.guild.voice.GuildVoiceLeaveEvent;
+import net.dv8tion.jda.core.events.guild.voice.GuildVoiceMoveEvent;
+import net.dv8tion.jda.core.events.guild.voice.GuildVoiceSelfDeafenEvent;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.core.events.message.guild.react.GenericGuildMessageReactionEvent;
+import net.dv8tion.jda.core.events.message.guild.react.GuildMessageReactionAddEvent;
+import net.dv8tion.jda.core.events.message.guild.react.GuildMessageReactionRemoveEvent;
 import net.dv8tion.jda.core.managers.AudioManager;
 
 /**
@@ -114,7 +122,7 @@ public class MusicPlayerUser extends AddonEmptyImpl implements Music.AudioAddon 
 
             GuildPlayer player = GuildPlayerFactory.getGuildPlayer(playerManager, e.getGuild());
 
-            if (container.getAsString().equalsIgnoreCase("start")) {
+            if (container.getAsString().equalsIgnoreCase("start") || container.getAsString().equalsIgnoreCase("join")) {
 
                 VoiceChannel voiceChannel = e.getGuild().getAudioManager().getConnectedChannel();
 
@@ -128,10 +136,11 @@ public class MusicPlayerUser extends AddonEmptyImpl implements Music.AudioAddon 
                         return true;
                     }
                     e.getGuild().getAudioManager().openAudioConnection(userVoiceChannel);
+                    e.getGuild().getAudioManager().setSelfDeafened(true);
                     player.sendNewInfoMessage();
                 }
 
-            } else if (container.getAsString().equalsIgnoreCase("queue")) {
+            } else if (container.getAsString().equalsIgnoreCase("queue") || container.getAsString().equalsIgnoreCase("play")) {
                 if (!container.hasNext()) {
                     return true;
                 }
@@ -139,14 +148,9 @@ public class MusicPlayerUser extends AddonEmptyImpl implements Music.AudioAddon 
                 String partialName = container.getRemainingContentAsString();
                 parseTrackInput(partialName, player, e);
 
-            } else if (container.getAsString().equalsIgnoreCase("voteskip") || container.getAsString().equalsIgnoreCase("votenext")) {
-                /*
-                AudioManager audioManager = e.getGuild().getAudioManager();
-                if (audioManager == null || !audioManager.isConnected()) {
-                    return false;
-                }*/
+            } else if (container.getAsString().equalsIgnoreCase("voteskip") || container.getAsString().equalsIgnoreCase("votenext") || container.getAsString().equalsIgnoreCase("next") || container.getAsString().equalsIgnoreCase("skip")) {
 
-                player.voteNext(e.getAuthor(), player.getAudioManager().getConnectedChannel().getMembers().size());
+                player.voteNext(e.getMember());
 
             } else if (!container.getAsString().startsWith("`")) {
                 List<Message.Attachment> attachments = e.getMessage().getAttachments();
@@ -213,6 +217,56 @@ public class MusicPlayerUser extends AddonEmptyImpl implements Music.AudioAddon 
                 player.enqueue(closestFile.getPath(), e);
             }
         }
+    }
+
+    @Override
+    public boolean onGuildReact(GenericGuildMessageReactionEvent e, AudioPlayerManager playerManager) {
+        GuildPlayer player = GuildPlayerFactory.getGuildPlayer(playerManager, e.getGuild());
+        
+        if (e.getReactionEmote().getName().equals("⏭")) {
+            if (e instanceof GuildMessageReactionAddEvent) {
+                player.voteNext(e.getMember());
+            } else if (e instanceof GuildMessageReactionRemoveEvent) {
+                player.cancelVoteNext(e.getMember());
+            }
+        } else if (e.getReactionEmote().getName().equals("🔂")) {
+            
+        } else {
+            return false;
+        }
+        
+        return true;
+    }
+
+    @Override
+    public boolean onVoiceEvent(GenericGuildVoiceEvent e, AudioPlayerManager playerManager) { //Removes the vote of all users leaving voice channel
+        GuildPlayer player = GuildPlayerFactory.getGuildPlayer(playerManager, e.getGuild());
+        
+        if (e instanceof GuildVoiceLeaveEvent) {
+            GuildVoiceLeaveEvent ee = (GuildVoiceLeaveEvent) e;
+            
+            if ("music".equalsIgnoreCase(ee.getChannelLeft().getName())) {
+                player.cancelVoteNext(e.getMember());
+            }
+            
+        } else if (e instanceof GuildVoiceMoveEvent) {
+            GuildVoiceMoveEvent ee = (GuildVoiceMoveEvent) e;
+            
+            if ("music".equalsIgnoreCase(ee.getChannelLeft().getName())) {
+                player.cancelVoteNext(e.getMember());
+            }
+            
+        } else if (e instanceof GuildVoiceDeafenEvent) {
+            GuildVoiceSelfDeafenEvent ee = (GuildVoiceSelfDeafenEvent) e;
+            
+            if (ee.isSelfDeafened()) {
+                player.cancelVoteNext(e.getMember());
+            }
+            
+        } else {
+            return false;
+        }
+        return true;
     }
     
 }

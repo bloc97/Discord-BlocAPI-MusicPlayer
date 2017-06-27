@@ -23,6 +23,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import net.dv8tion.jda.core.audio.AudioSendHandler;
 import net.dv8tion.jda.core.entities.Guild;
+import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.entities.User;
@@ -48,7 +49,7 @@ public class GuildPlayer extends AudioEventAdapter implements AudioSendHandler {
     
     private final Timer playingTimer;
     
-    private Set<User> votedNext = new HashSet<>();
+    private Set<Member> votedNext = new HashSet<>();
     
     public GuildPlayer(AudioPlayerManager playerManager, Guild guild) {
         this.audioPlayer = playerManager.createPlayer();
@@ -102,6 +103,7 @@ public class GuildPlayer extends AudioEventAdapter implements AudioSendHandler {
             removeInfoMessage();
         }
         playingMessage = infoChannel.sendMessage(PlayingNowGenerator.generateEmptyPlayingNow()).complete();
+        playingMessage.addReaction("⏭").queue();
         playlistMessage = infoChannel.sendMessage(PlayingNowGenerator.generatePlayQueue(queue)).complete();
     }
     
@@ -162,18 +164,42 @@ public class GuildPlayer extends AudioEventAdapter implements AudioSendHandler {
     
     public boolean next() {
         votedNext = new HashSet<>();
+        if (playingMessage != null) {
+            playingMessage.clearReactions().complete();
+            playingMessage.addReaction("⏭").queue();
+        }
         return audioPlayer.startTrack(queue.poll(), false);
     }
     
-    public void voteNext(User user, int totalUsers) {
-        if (totalUsers - 1 == 1) {
+    
+    public void voteNext(Member member) {
+        
+        int totalUsersWithoutBot = (audioManager.isConnected()) ? audioManager.getConnectedChannel().getMembers().size() - 1 : 0;
+        
+        if (totalUsersWithoutBot == 0) { //If there's no one
             next();
+            return;
+        } else if (totalUsersWithoutBot == 1) { //If there is one person
+            if (audioManager.getConnectedChannel().getMembers().contains(member)) { //People not listening cannot vote
+                next();
+            }
+            return;
+        } else { //If there is multiple persons
+            if (audioManager.getConnectedChannel().getMembers().contains(member) && !member.getVoiceState().isDeafened()) { //People not listening cannot vote
+                votedNext.add(member);
+                if (votedNext.size()/(double)(totalUsersWithoutBot) > 0.5d) {
+                    next();
+                }
+            }
             return;
         }
         
-        votedNext.add(user);
-        //if (votedNext.size() >= ((int)Math.ceil((totalUsers - 1) / 2d))) {
-        if (votedNext.size()/(double)(totalUsers - 1) > 0.5d) {
+    }
+    public void cancelVoteNext(Member member) {
+        int totalUsersWithoutBot = (audioManager.isConnected()) ? audioManager.getConnectedChannel().getMembers().size() - 1 : 0;
+        votedNext.remove(member);
+        
+        if (votedNext.size()/(double)(totalUsersWithoutBot) > 0.5d) {
             next();
         }
     }

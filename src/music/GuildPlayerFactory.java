@@ -24,7 +24,6 @@ public abstract class GuildPlayerFactory {
         }
         
         GuildPlayer audioPlayer = new GuildPlayer(playerManager, guild);
-        
         map.put(guild, audioPlayer);
         return audioPlayer;
     }

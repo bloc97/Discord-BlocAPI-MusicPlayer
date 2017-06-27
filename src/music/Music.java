@@ -21,8 +21,13 @@ import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.entities.ChannelType;
 import net.dv8tion.jda.core.entities.Game;
 import net.dv8tion.jda.core.entities.impl.GameImpl;
+import net.dv8tion.jda.core.events.DisconnectEvent;
+import net.dv8tion.jda.core.events.Event;
 import net.dv8tion.jda.core.events.ReadyEvent;
+import net.dv8tion.jda.core.events.guild.voice.GenericGuildVoiceEvent;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.core.events.message.guild.react.GenericGuildMessageReactionEvent;
+import net.dv8tion.jda.core.events.message.guild.react.GuildMessageReactionAddEvent;
 import token.TokenConverter;
 
 /**
@@ -35,6 +40,8 @@ public class Music extends ModuleEmptyImpl<AudioAddon> {
     
     public interface AudioAddon extends Addon {
         public boolean onMessage(MessageReceivedEvent e, TokenAdvancedContainer container, AudioPlayerManager playerManager);
+        public boolean onGuildReact(GenericGuildMessageReactionEvent e, AudioPlayerManager playerManager);
+        public boolean onVoiceEvent(GenericGuildVoiceEvent e, AudioPlayerManager playerManager);
     }
     
     public Music(ContainerSettings containerSettings, TokenConverter tokenConverter, BotCommandTrigger commandTrigger) {
@@ -64,6 +71,30 @@ public class Music extends ModuleEmptyImpl<AudioAddon> {
         e.getJDA().getPresence().setGame(new GameImpl("Alpha Test", "https://github.com/bloc97/Discord-BlocAPI-MusicPlayer", Game.GameType.DEFAULT));
         //e.getJDA().getSelfUser().getManager().setName("♫ _ ♫").complete();
         return true;
+    }
+
+    @Override
+    public boolean onOtherEvent(Event e) {
+        if (e instanceof GenericGuildMessageReactionEvent) {
+            GenericGuildMessageReactionEvent ge = (GenericGuildMessageReactionEvent)e;
+            if (!ge.getUser().isBot() && ge.getChannel().getName().equalsIgnoreCase("music")) {
+                for (AudioAddon addon : getAddons()) {
+                    if (addon.onGuildReact(ge, playerManager)) {
+                        return true;
+                    }
+                }
+            }
+        } else if (e instanceof GenericGuildVoiceEvent) {
+            GenericGuildVoiceEvent ge = (GenericGuildVoiceEvent)e;
+            if (!ge.getMember().getUser().isBot() && ge.getVoiceState().getChannel().getName().equalsIgnoreCase("music")) {
+                for (AudioAddon addon : getAddons()) {
+                    if (addon.onVoiceEvent(ge, playerManager)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
     
     @Override

@@ -19,9 +19,12 @@ import static music.addon.MusicPlayerUser.parseTrackInput;
 import net.bloc97.helpers.Levenshtein;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.ChannelType;
+import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Role;
 import net.dv8tion.jda.core.entities.VoiceChannel;
+import net.dv8tion.jda.core.events.guild.voice.GenericGuildVoiceEvent;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.core.events.message.guild.react.GenericGuildMessageReactionEvent;
 import net.dv8tion.jda.core.managers.AudioManager;
 
 /**
@@ -42,14 +45,14 @@ public class MusicPlayerAdmin extends AddonEmptyImpl implements Music.AudioAddon
 
     @Override
     public String getShortHelp() {
-        return "**!join** - *Forces the music bot to join your current voice channel*\n" +
-               "**!leave** - *Forces the music bot to leave the guild's voice channel*\n" +
-               "**!play** <File|URL> - *Plays the chosen track or resumes playing*\n" +
+        return "**!play** <File|URL> - *Plays the chosen track or resumes playing*\n" +
                "**!stop** - *Stops the music bot*\n" +
                "**!skip** - *Skips the current track*\n" +
                "**!clear** - *Clears the playlist*\n" +
                "**!pause** - *Pauses the music bot*\n" +
                "**!unpause** - *Unauses the music bot*\n" +
+               "**!shutdown** - *Forces the music bot to leave the guilds' music channel*\n" +
+               "**!reset** - *Forces the music bot to rejoin the guilds' music channel*\n" +
                "*Note: These commands only work in the #Music channel of a guild.*";
     }
 
@@ -71,7 +74,7 @@ public class MusicPlayerAdmin extends AddonEmptyImpl implements Music.AudioAddon
         }
         
         for (Role role : e.getMember().getRoles()) {
-            if (role.hasPermission(Permission.ADMINISTRATOR)) {
+            if (role.hasPermission(Permission.ADMINISTRATOR) || role.hasPermission(Permission.MESSAGE_MANAGE)) {
                 return true;
             }
         }
@@ -86,24 +89,12 @@ public class MusicPlayerAdmin extends AddonEmptyImpl implements Music.AudioAddon
     @Override
     public boolean onMessage(MessageReceivedEvent e, TokenAdvancedContainer container, AudioPlayerManager playerManager) {
         
+        
         if (e.getChannelType() == ChannelType.TEXT) {
             
             GuildPlayer player = GuildPlayerFactory.getGuildPlayer(playerManager, e.getGuild());
 
-            if (container.getAsString().equalsIgnoreCase("join")) {
-
-                VoiceChannel voiceChannel = e.getGuild().getAudioManager().getConnectedChannel();
-
-                if (voiceChannel == null) {
-                    VoiceChannel userVoiceChannel = e.getMember().getVoiceState().getChannel();
-                    if (userVoiceChannel == null) {
-                        return true;
-                    }
-                    e.getGuild().getAudioManager().openAudioConnection(userVoiceChannel);
-                    player.sendNewInfoMessage();
-                }
-
-            } else if (container.getAsString().equalsIgnoreCase("play")) {
+            if (container.getAsString().equalsIgnoreCase("play")) {
 
                 if (!container.hasNext()) {
                     if (player.getAudioPlayer().isPaused()) {
@@ -128,12 +119,17 @@ public class MusicPlayerAdmin extends AddonEmptyImpl implements Music.AudioAddon
                 player.pause();
             } else if (container.getAsString().equalsIgnoreCase("unpause")) {
                 player.unpause();
-            } else if (container.getAsString().equalsIgnoreCase("leave")) {
-                AudioManager audioManager = player.getAudioManager();
-                if (audioManager.isConnected()) {
+            } else if (container.getAsString().equalsIgnoreCase("shutdown") || container.getAsString().equalsIgnoreCase("leave")) {
+                    AudioManager audioManager = player.getAudioManager();
                     audioManager.closeAudioConnection();
                     player.removeInfoMessage();
-                }
+            } else if (container.getAsString().equalsIgnoreCase("reset")) {
+                    AudioManager audioManager = player.getAudioManager();
+                    if (audioManager.isConnected()) {
+                        VoiceChannel voiceChannel = audioManager.getConnectedChannel();
+                        audioManager.closeAudioConnection();
+                        audioManager.openAudioConnection(voiceChannel);
+                    }
             } else if (container.getAsString().equalsIgnoreCase("help")) {
                 Help.showHelp(e, this);
                 return false;
@@ -187,5 +183,15 @@ public class MusicPlayerAdmin extends AddonEmptyImpl implements Music.AudioAddon
                 player.enplay(closestFile.getPath(), e);
             }
         }
+    }
+
+    @Override
+    public boolean onGuildReact(GenericGuildMessageReactionEvent e, AudioPlayerManager playerManager) {
+        return false;
+    }
+
+    @Override
+    public boolean onVoiceEvent(GenericGuildVoiceEvent e, AudioPlayerManager playerManager) {
+        return false;
     }
 }
