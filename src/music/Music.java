@@ -79,7 +79,7 @@ public class Music extends ModuleEmptyImpl<AudioAddon> {
             if (addon.hasPermissions(e)) {
                 if (onMessageForEachAddon(addon, e, container)) {
                     if (e.getChannelType() == ChannelType.TEXT) {
-                        e.getMessage().delete().queueAfter(5, TimeUnit.DAYS);
+                        e.getMessage().delete().queueAfter(5, TimeUnit.SECONDS);
                     }
                     return true;
                 }

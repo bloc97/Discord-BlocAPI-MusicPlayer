@@ -148,7 +148,7 @@ public class MusicPlayerUser extends AddonEmptyImpl implements Music.AudioAddon 
 
                 player.voteNext(e.getAuthor(), player.getAudioManager().getConnectedChannel().getMembers().size());
 
-            } else {
+            } else if (!container.getAsString().startsWith("`")) {
                 List<Message.Attachment> attachments = e.getMessage().getAttachments();
                 if (!attachments.isEmpty()) {
                     Message.Attachment attachment = attachments.get(0);
@@ -174,6 +174,14 @@ public class MusicPlayerUser extends AddonEmptyImpl implements Music.AudioAddon 
     }
     
     public static void parseTrackInput(String partialName, GuildPlayer player, MessageReceivedEvent e) {
+        
+        if (partialName.contains("\n")) {
+            String[] partialNameList = partialName.split("\n");
+            for (String splitPartialName : partialNameList) {
+                parseTrackInput(splitPartialName, player, e);
+            }
+            return;
+        }
         
         if (partialName.startsWith("http") || partialName.startsWith("www")) {
             player.enqueue(partialName, e);
