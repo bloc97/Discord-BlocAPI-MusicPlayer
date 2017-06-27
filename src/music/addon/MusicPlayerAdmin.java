@@ -15,6 +15,7 @@ import modules.help.Help;
 import music.GuildPlayer;
 import music.GuildPlayerFactory;
 import music.Music;
+import static music.addon.MusicPlayerUser.parseTrackInput;
 import net.bloc97.helpers.Levenshtein;
 import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.ChannelType;
@@ -146,6 +147,15 @@ public class MusicPlayerAdmin extends AddonEmptyImpl implements Music.AudioAddon
     }
     
     public static void parseTrackInput(String partialName, GuildPlayer player, MessageReceivedEvent e) {
+        
+        if (partialName.contains("\n")) {
+            String[] partialNameList = partialName.split("\n");
+            for (String splitPartialName : partialNameList) {
+                parseTrackInput(splitPartialName, player, e); //play only first of the list
+                return;
+            }
+            return;
+        }
         
         if (partialName.startsWith("http") || partialName.startsWith("www")) {
             player.enplay(partialName, e);
