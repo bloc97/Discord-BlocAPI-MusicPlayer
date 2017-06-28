@@ -75,24 +75,28 @@ public class Music extends ModuleEmptyImpl<AudioAddon> {
 
     @Override
     public boolean onOtherEvent(Event e) {
-        if (e instanceof GenericGuildMessageReactionEvent) {
-            GenericGuildMessageReactionEvent ge = (GenericGuildMessageReactionEvent)e;
-            if (!ge.getUser().isBot() && ge.getChannel().getName().equalsIgnoreCase("music")) {
-                for (AudioAddon addon : getAddons()) {
-                    if (addon.onGuildReact(ge, playerManager)) {
-                        return true;
+        try {
+            if (e instanceof GenericGuildMessageReactionEvent) {
+                GenericGuildMessageReactionEvent ge = (GenericGuildMessageReactionEvent)e;
+                if (!ge.getUser().isBot() && ge.getChannel().getName().equalsIgnoreCase("music")) {
+                    for (AudioAddon addon : getAddons()) {
+                        if (addon.onGuildReact(ge, playerManager)) {
+                            return true;
+                        }
+                    }
+                }
+            } else if (e instanceof GenericGuildVoiceEvent) {
+                GenericGuildVoiceEvent ge = (GenericGuildVoiceEvent)e;
+                if (!ge.getMember().getUser().isBot() && ge.getVoiceState().getChannel().getName().equalsIgnoreCase("music")) {
+                    for (AudioAddon addon : getAddons()) {
+                        if (addon.onVoiceEvent(ge, playerManager)) {
+                            return true;
+                        }
                     }
                 }
             }
-        } else if (e instanceof GenericGuildVoiceEvent) {
-            GenericGuildVoiceEvent ge = (GenericGuildVoiceEvent)e;
-            if (!ge.getMember().getUser().isBot() && ge.getVoiceState().getChannel().getName().equalsIgnoreCase("music")) {
-                for (AudioAddon addon : getAddons()) {
-                    if (addon.onVoiceEvent(ge, playerManager)) {
-                        return true;
-                    }
-                }
-            }
+        } catch (Exception ex) {
+            return false;
         }
         return false;
     }
