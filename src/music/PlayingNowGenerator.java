@@ -70,8 +70,8 @@ public abstract class PlayingNowGenerator {
             i++;
         }
         
-        if (finalString.length() > 4000) {
-            finalString = finalString.substring(0, 4000) + "\n...";
+        if (finalString.length() > 1000) {
+            finalString = finalString.substring(0, 1000) + "\n...";
         }
         finalString += "\n```";
         return finalString;
