@@ -9,6 +9,14 @@ import addon.Addon;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers;
+import com.sedmelluq.discord.lavaplayer.source.bandcamp.BandcampAudioSourceManager;
+import com.sedmelluq.discord.lavaplayer.source.beam.BeamAudioSourceManager;
+import com.sedmelluq.discord.lavaplayer.source.http.HttpAudioSourceManager;
+import com.sedmelluq.discord.lavaplayer.source.local.LocalAudioSourceManager;
+import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceManager;
+import com.sedmelluq.discord.lavaplayer.source.twitch.TwitchStreamAudioSourceManager;
+import com.sedmelluq.discord.lavaplayer.source.vimeo.VimeoAudioSourceManager;
+import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager;
 import music.Music.AudioAddon;
 import container.ContainerSettings;
 import container.TokenAdvancedContainer;
@@ -21,13 +29,11 @@ import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.entities.ChannelType;
 import net.dv8tion.jda.core.entities.Game;
 import net.dv8tion.jda.core.entities.impl.GameImpl;
-import net.dv8tion.jda.core.events.DisconnectEvent;
 import net.dv8tion.jda.core.events.Event;
 import net.dv8tion.jda.core.events.ReadyEvent;
 import net.dv8tion.jda.core.events.guild.voice.GenericGuildVoiceEvent;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.core.events.message.guild.react.GenericGuildMessageReactionEvent;
-import net.dv8tion.jda.core.events.message.guild.react.GuildMessageReactionAddEvent;
 import token.TokenConverter;
 
 /**
@@ -47,8 +53,19 @@ public class Music extends ModuleEmptyImpl<AudioAddon> {
     public Music(ContainerSettings containerSettings, TokenConverter tokenConverter, BotCommandTrigger commandTrigger) {
         super(containerSettings, tokenConverter, commandTrigger, new MusicPlayerAdmin(), new MusicPlayerUser());
         this.playerManager = new DefaultAudioPlayerManager();
-        AudioSourceManagers.registerLocalSource(playerManager);
-        AudioSourceManagers.registerRemoteSources(playerManager);
+        
+        playerManager.registerSourceManager(new YoutubeAudioSourceManager(true));
+        playerManager.registerSourceManager(new SoundCloudAudioSourceManager());
+        playerManager.registerSourceManager(new BandcampAudioSourceManager());
+        playerManager.registerSourceManager(new VimeoAudioSourceManager());
+        playerManager.registerSourceManager(new TwitchStreamAudioSourceManager());
+        playerManager.registerSourceManager(new BeamAudioSourceManager());
+        playerManager.registerSourceManager(new HttpAudioSourceManager());
+        
+        playerManager.registerSourceManager(new LocalAudioSourceManager());
+        
+        //AudioSourceManagers.registerLocalSource(playerManager);
+        //AudioSourceManagers.registerRemoteSources(playerManager);
     }
 
     @Override

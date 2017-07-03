@@ -83,7 +83,7 @@ public abstract class PlayingNowGenerator {
         long hours = TimeUnit.MILLISECONDS.toHours(miliseconds);
         
         String secondsString = (seconds < 10) ? "0" + seconds : "" + seconds;
-        String minutesString = "" + minutes;
+        String minutesString = (minutes < 10) ? "0" + minutes : "" + minutes;
         String hoursString = (hours == 0) ? "" : hours + ":";
         
         return hoursString + minutesString + ":" + secondsString;
